@@ -1,6 +1,11 @@
 [
-    { "caption": "css_colorize",
-      "command": "css_colorize",
-      "args": {"erase_state": true}},
-    { "caption": "css_uncolorize", "command": "css_uncolorize"}
+	{
+		"caption": "CSS Colors: Colorize",
+		"command": "css_colorize",
+		"args": {"erase_state": true}
+	},
+	{
+		"caption": "CSS Colors: Uncolorize",
+		"command": "css_uncolorize"
+	}
 ]
