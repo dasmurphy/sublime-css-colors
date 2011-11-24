@@ -4,9 +4,9 @@
         "children":
         [
             {
-                "caption": "CSS dynamic highligting",
+                "caption": "Toggle CSS dynamic highlighting",
                 "command": "toggle_auto_css_colorize"
             }
-            ]
-        }
+        ]
+    }
 ]

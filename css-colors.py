@@ -179,7 +179,7 @@ class theme(object):
 
     class __metaclass__(type):
         @property
-        def abspash(cls):
+        def abspath(cls):
             theme_path = cls._settings.get('color_scheme') or ""
 
             if theme_path.startswith('Packages'):
@@ -189,15 +189,15 @@ class theme(object):
 
         @property
         def relpath(cls):
-            return relpath(cls.abspash, SUBLIME_PATH)
+            return relpath(cls.abspath, SUBLIME_PATH)
 
         @property
         def dirname(cls):
-            return dirname(cls.abspash)
+            return dirname(cls.abspath)
 
         @property
         def name(cls):
-            return basename(cls.abspash)
+            return basename(cls.abspath)
 
         @property
         def is_colorized(cls):
@@ -257,7 +257,8 @@ def generate_color_theme(colors):
     colors: [Color]
     """
 
-    theme_path = theme.abspash
+    theme_path = theme.abspath
+    theme_cache = theme_path + '.cache'
     theme_plist = read_plist(theme_path)
     colorized_theme_path = theme.colorized_path
 
@@ -267,10 +268,12 @@ def generate_color_theme(colors):
     write_plist(theme_plist, colorized_theme_path)
 
     theme.set(colorized_theme_path)
-    
+
     if basename(theme_path).startswith('Colorized-'):
-        rm(theme_path)
-        rm(theme_path + '.cache')
+        if exists(theme_path):
+            rm(theme_path)
+        if exists(theme_cache):
+            rm(theme_cache)
 
 
 def colorize_regions(view, regions, colors):
@@ -346,16 +349,44 @@ def clean_themes_folder():
 
 
 class CssColorizeCommand(sublime_plugin.TextCommand):
+    def is_enabled(self):
+        return not user_settings.dynamic_highlight
+
+    def is_visible(self):
+        return not user_settings.dynamic_highlight
+
     def run(self, edit, erase_state=False):
         colorize_css(self.view, erase_state)
+        user_settings.dynamic_highlight = True
 
 
 class CssUncolorizeCommand(sublime_plugin.TextCommand):
+    def is_enabled(self):
+        return user_settings.dynamic_highlight
+
+    def is_visible(self):
+        return user_settings.dynamic_highlight
+
     def run(self, edit):
-        clear_css_regions(self.view)
         if theme.is_colorized:
+            theme_path = theme.abspath
+            theme_cache = theme_path + '.cache'
             theme.set(theme.uncolorized_path)
-            clean_themes_folder()
+            if exists(theme_path):
+                rm(theme_path)
+            if exists(theme_cache):
+                rm(theme_cache)
+        clear_css_regions(self.view)
+        user_settings.dynamic_highlight = False
+
+
+class ToggleAutoCssColorizeCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        if user_settings.dynamic_highlight:
+            self.window.run_command('css_uncolorize')
+        else:
+            self.window.run_command('css_colorize', {'erase_state': True})
+
 
 
 # TODO: activate on change
@@ -364,8 +395,8 @@ class CssColorizeEventer(sublime_plugin.EventListener):
         if not user_settings.dynamic_highlight:
             return
         self.view = view
-        clean_themes_folder()
         theme.on_select_new_theme(lambda: colorize_if_not(view))
+        clean_themes_folder()
         if self.file_is_css:
             colorize_css(view, True)
 
@@ -378,17 +409,9 @@ class CssColorizeEventer(sublime_plugin.EventListener):
 
     @property
     def file_is_css(self):
-        any_point = self.view.sel()[0].begin()
-        file_scope = self.view.scope_name(any_point).split()[0]
-        if file_scope == 'source.css':
-            return True
-
-
-class ToggleAutoCssColorize(sublime_plugin.WindowCommand):
-    def run(self):
-        if user_settings.dynamic_highlight:
-            user_settings.dynamic_highlight = False
-            self.window.run_command('css_uncolorize')
-        else:
-            user_settings.dynamic_highlight = True
-            self.window.run_command('css_colorize', {'erase_state': True})
+        sels = self.view.sel()
+        if len(sels):
+            any_point = sels[0].begin()
+            file_scope = self.view.scope_name(any_point).split()[0]
+            if file_scope == 'source.css':
+                return True
