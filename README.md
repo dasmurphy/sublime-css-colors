@@ -1,3 +1,6 @@
+#Sorry for the inconvenience, but the project is renamed to livecss. And the new project page is at https://github.com/a-sk/livecss
+
+
 #Introduction:
 This Script underlays the hexadecimal, rgb or named CSS color codes with their real color.
 The foreground color is selected oppositely.
